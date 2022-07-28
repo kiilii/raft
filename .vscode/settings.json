@@ -1,0 +1,12 @@
+{
+    // protobuf setting
+    "clang-format.style": "llvm",
+    "protoc": {
+        "path": "/usr/local/bin/protoc",
+        "compile_on_save": true,
+        "options": [
+            "--proto_path=${workspaceRoot}/proto",
+            "--go_out=paths=source_relative:${workspaceRoot}/proto",
+        ],
+    },
+}

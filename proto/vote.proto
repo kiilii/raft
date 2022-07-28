@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package kiilii.raft.vote;
+option go_package = ".";
+
+message RequestVoteArgs {
+  int32 term = 1;  // current term of the candidate, very IMPORTANT
+  int32 candidate_id = 2;  // id of the candidate, 0 -  N-1 where N = total servers
+  int64 last_log_index = 3;  // important metadata for election correctness
+  int64 last_log_term = 4;  // important metadata for election correctness, explain later
+}
+
+message RequestVoteReply {
+  int32 term = 1;         // current term of the receiving node
+  bool vote_granted = 2;  // yes or no
+}
+
+service TransportServer {
+    rpc RequestVote (RequestVoteArgs) returns (RequestVoteReply);
+    rpc AppendEntry (AppendEntryArgs) returns (AppendEntryReply);
+}
+
+message AppendEntryArgs {
+  int32 term = 1;       // current term of the candidate, very IMPORTANT
+  int32 leader_id = 2;  // id of the candidate, 0 -  N-1 where N = total servers
+  // Entries			[]Entry // new data to sync
+  int64 prev_log_index = 3;  // important metadata for log correctness
+  int64 prev_log_term = 4;   // important metadata for log correctness
+  int64 leader_commit = 5;   // what index have been received by the majority
+}
+
+message AppendEntryReply {
+  int32 term = 1;           // current term of the receiving node
+  bool success = 2;         // AppendEntry declined or accepted
+  int64 ConflictIndex = 3;  // if declined, specifying the conflicting index
+  int64 ConflictTerm = 4;   // if declined, specifying the conflicting term
+}
