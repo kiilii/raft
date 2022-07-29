@@ -5,8 +5,10 @@
         "path": "/usr/local/bin/protoc",
         "compile_on_save": true,
         "options": [
+            "--proto_path=/usr/local/Cellar/protobuf/3.19.4/include",
             "--proto_path=${workspaceRoot}/proto",
             "--go_out=paths=source_relative:${workspaceRoot}/proto",
+            "--go-grpc_out=paths=source_relative:${workspaceRoot}/proto",
         ],
     },
 }
