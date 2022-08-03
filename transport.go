@@ -2,78 +2,35 @@ package raft
 
 import (
 	"fmt"
-	"log"
 	"net"
-	"sync"
 )
 
-// transport
-
 type Transport struct {
-	conf *Config
-
-	mu    *sync.RWMutex
-	conns map[string]net.Conn
-
-	shutdown bool
-
-	logger *log.Logger
+	conf     *Config
+	listener *net.TCPListener
 }
 
 func NewTransport(c *Config) *Transport {
-	tp := &Transport{
-		conf:   c,
-		mu:     &sync.RWMutex{},
-		logger: log.Default(),
-	}
-
-	go tp.Listener()
-
-	return tp
-}
-
-func (tp *Transport) Listener() {
-	l, err := net.Listen("tcp", ":7777")
+	addr, err := net.ResolveTCPAddr("tcp", c.LHost)
 	if err != nil {
-		panic(fmt.Sprintf("can not listener!,%+v", err))
-	}
-	for !tp.shutdown {
-		conn, err := l.Accept()
-		if err != nil {
-			tp.logger.Printf("exception of accept conn. %+v", err)
-			continue
-		}
-		tp.saveConn(conn)
+		panic(fmt.Sprintf("resolve addr error! error(%s)", err))
 	}
 
-	tp.mu.Lock()
-	defer tp.mu.Unlock()
-
-	for _, conn := range tp.conns {
-		if err := conn.Close(); err != nil {
-			tp.logger.Printf("close connenct error! err(%v)", err.Error())
-		}
+	l, err := net.ListenTCP("tcp", addr)
+	if err != nil {
+		panic(fmt.Sprintf("tcp listen failed! error(%s)", err))
 	}
 
-	if err := l.Close(); err != nil {
-		tp.logger.Printf("close connenct error! err(%v)", err.Error())
+	return &Transport{
+		conf:     c,
+		listener: l,
 	}
 }
 
-func (tp *Transport) Close() {
-	tp.shutdown = false
+func (t *Transport) Accept() (*net.TCPConn, error) {
+	return t.listener.AcceptTCP()
 }
 
-func (tp *Transport) saveConn(conn net.Conn) {
-	tp.mu.Lock()
-	defer tp.mu.Unlock()
-
-	var addr = conn.RemoteAddr().String()
-
-	_, has := tp.conns[addr]
-	if !has {
-		tp.conns[addr] = conn
-	} else {
-		tp.logger.Printf("duplicate conn! remote(%s)", addr)
-	}
+func (t *Transport) Stop() error {
+	return t.listener.Close()
 }
