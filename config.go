@@ -6,4 +6,9 @@ type Config struct {
 
 	// peers remote host array
 	Peers []string
+
+	// 过期时间
+	Timeout      int
+	ReadTimeout  int
+	WriteTimeout int
 }

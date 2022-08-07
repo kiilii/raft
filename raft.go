@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 )
 
 type Server struct {
@@ -20,6 +21,7 @@ func New() *Server {
 	s.connenctPeers()
 	go s.listen()
 
+	// 进入选举流程
 	return s
 }
 
@@ -48,7 +50,7 @@ func (s *Server) listen() {
 
 	// 开启服务监听
 	for s.shutdown {
-		conn, err := tp.Accept()
+		conn, err := tp.listener.AcceptTCP()
 		if err != nil {
 			fmt.Printf("exception connnet! error(%v)", err)
 		}
@@ -62,5 +64,18 @@ func (s *Server) listen() {
 		s.mu.Lock()
 		s.conns[conn.RemoteAddr().String()] = conn
 		s.mu.Unlock()
+
+		go s.candidate(conn)
 	}
+}
+
+// candidate 进入选举状态
+func (s *Server) candidate(conn *net.TCPConn) {
+	for {
+
+		conn.SetKeepAlive(true)
+		conn.SetKeepAlivePeriod(time.Second * time.Duration(s.c.Timeout))
+		conn.SetLinger(-1)
+	}
+
 }
