@@ -33,6 +33,8 @@ func (c *Candidate) Watch() error {
 	return err
 }
 
+func (c *Candidate) isStart() bool { return c.Status == true }
+
 func (c *Candidate) Stop() {
 	c.Status = false
 }
