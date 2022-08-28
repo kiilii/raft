@@ -35,7 +35,7 @@ func New(c *Config) *RaftServer {
 
 	// register grpc
 	nodeServer := grpc.NewServer()
-	proto.RegisterTransportServerServer(nodeServer, NewServer(rs.c))
+	proto.RegisterPeerServer(nodeServer, NewServer(rs.c))
 	rs.server = nodeServer
 
 	if rs.server.Serve(lis); err != nil {

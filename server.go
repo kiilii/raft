@@ -12,7 +12,7 @@ type Server struct {
 
 	// commitLogs chan<-
 
-	pb.UnimplementedTransportServerServer
+	pb.UnimplementedPeerServer
 }
 
 func NewServer(c *Config) *Server {
