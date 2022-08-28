@@ -1,81 +1,47 @@
 package raft
 
 import (
-	"fmt"
+	"log"
 	"net"
-	"sync"
-	"time"
+
+	"github.com/kiilii/raft/proto"
+	"google.golang.org/grpc"
 )
 
-type Server struct {
-	c        *Config
-	shutdown bool
+type RaftServer struct {
+	c *Config
 
-	mu    sync.RWMutex
-	conns map[string]*net.TCPConn
+	ServerID string
+	PeersID  []string
+
+	quit chan<- interface{}
+
+	// 服务监听本体
+	server *grpc.Server
+	listen net.Listener
 }
 
-func New() *Server {
-	s := &Server{shutdown: true, c: &Config{}}
+func New(c *Config) *RaftServer {
+	var lis, err = net.Listen("tcp", c.Host)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
 
-	s.connenctPeers()
-	go s.listen()
+	rs := &RaftServer{
+		c:      c,
+		quit:   make(chan<- interface{}),
+		listen: lis,
+	}
+
+	// register grpc
+	nodeServer := grpc.NewServer()
+	proto.RegisterTransportServerServer(nodeServer, NewServer(rs.c))
+	rs.server = nodeServer
+
+	if rs.server.Serve(lis); err != nil {
+		panic(err)
+	}
 
 	// 进入选举流程
-	return s
-}
-
-// connenctPeers 连接对等节点
-func (s *Server) connenctPeers() {
-	for _, p := range s.c.Peers {
-		raddr, err := net.ResolveTCPAddr("tcp", p)
-		if err != nil {
-			panic(err) // 配置错误直接崩溃
-		}
-
-		conn, err := net.DialTCP("tcp", nil, raddr)
-		if err != nil {
-			fmt.Println("") // 连接失败打印信息
-		}
-
-		s.mu.Lock()
-		s.conns[conn.RemoteAddr().String()] = conn
-		s.mu.Unlock()
-	}
-}
-
-// listen 开启服务监听
-func (s *Server) listen() {
-	tp := NewTransport(s.c)
-
-	// 开启服务监听
-	for s.shutdown {
-		conn, err := tp.listener.AcceptTCP()
-		if err != nil {
-			fmt.Printf("exception connnet! error(%v)", err)
-		}
-
-		if c, has := s.conns[conn.RemoteAddr().String()]; has {
-			fmt.Printf("exception connnet! error(%v)", err)
-			if err := c.Close(); err != nil {
-				fmt.Printf("close connent error! %v", err)
-			}
-		}
-		s.mu.Lock()
-		s.conns[conn.RemoteAddr().String()] = conn
-		s.mu.Unlock()
-
-		go s.candidate(conn)
-	}
-}
-
-// candidate 进入选举状态
-func (s *Server) candidate(conn *net.TCPConn) {
-	for {
-
-		conn.SetKeepAlive(true)
-		conn.SetKeepAlivePeriod(time.Second * time.Duration(s.c.Timeout))
-		conn.SetLinger(-1)
-	}
-
+	return rs
 }

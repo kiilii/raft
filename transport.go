@@ -11,7 +11,7 @@ type Transport struct {
 }
 
 func NewTransport(c *Config) *Transport {
-	addr, err := net.ResolveTCPAddr("tcp", c.LHost)
+	addr, err := net.ResolveTCPAddr("tcp", c.Host)
 	if err != nil {
 		panic(fmt.Sprintf("resolve addr error! error(%s)", err))
 	}
