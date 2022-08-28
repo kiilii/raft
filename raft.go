@@ -6,19 +6,22 @@ import (
 
 	"github.com/kiilii/raft/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type RaftServer struct {
 	c *Config
 
 	ServerID string
-	PeersID  []string
 
 	quit chan<- interface{}
 
 	// 服务监听本体
 	server *grpc.Server
 	listen net.Listener
+	peers  map[int]grpc.ClientConnInterface
+
+	logger *log.Logger
 }
 
 func New(c *Config) *RaftServer {
@@ -31,6 +34,7 @@ func New(c *Config) *RaftServer {
 		c:      c,
 		quit:   make(chan<- interface{}),
 		listen: lis,
+		logger: log.Default(),
 	}
 
 	// register grpc
@@ -38,10 +42,35 @@ func New(c *Config) *RaftServer {
 	proto.RegisterPeerServer(nodeServer, NewServer(rs.c))
 	rs.server = nodeServer
 
-	if rs.server.Serve(lis); err != nil {
+	// 开启服务
+	if err := rs.server.Serve(lis); err != nil {
+		panic(err)
+	}
+	// 连接各个 peers 节点
+	if err := rs.ConnectAllPeers(); err != nil {
 		panic(err)
 	}
 
-	// 进入选举流程
 	return rs
+}
+
+func (rs *RaftServer) ConnectAllPeers() error {
+	for _, peer := range rs.c.Peers {
+		conn, err := grpc.Dial(peer, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			rs.logger.Print(err)
+			continue
+		}
+
+		peerid, err := IP2Number(peer)
+		if err != nil {
+			rs.logger.Print(err)
+			continue
+		}
+
+		if _, has := rs.peers[peerid]; !has {
+			rs.peers[peerid] = conn
+		}
+	}
+	return nil
 }
