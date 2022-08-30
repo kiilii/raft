@@ -18,6 +18,10 @@ type RaftServer struct {
 
 	// 服务监听本体
 	server *grpc.Server
+
+	// 服务当前状态
+	State
+
 	listen net.Listener
 	peers  map[int]grpc.ClientConnInterface
 
@@ -51,6 +55,9 @@ func New(c *Config) *RaftServer {
 		panic(err)
 	}
 
+	// 监听
+	go rs.Watch()
+
 	return rs
 }
 
@@ -73,4 +80,16 @@ func (rs *RaftServer) ConnectAllPeers() error {
 		}
 	}
 	return nil
+}
+
+// Watch 监听 leader
+func (rs *RaftServer) Watch() {
+	for {
+		select {
+		case _ <- rs.quit:
+			return
+		default:
+
+		}
+	}
 }
