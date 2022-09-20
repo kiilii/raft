@@ -8,7 +8,7 @@ type Config struct {
 	Peers []string
 
 	// 过期时间
-	Timeout      int
-	ReadTimeout  int
-	WriteTimeout int
+	Timeout         int64
+	RequestTimeout  int64
+	ElectionTimeout int64
 }
