@@ -2,14 +2,6 @@ package raft
 
 // 保证 node 之间互通
 
-const (
-	_ = iota << 0
-	RaftNodeVotedForMe
-	RaftNodeVoting
-	RaftNodeVotingCommited
-	RaftNodeInactive
-)
-
 type Node struct {
 	NextIdx  uint64
 	MatchIdx uint64
